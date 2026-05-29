@@ -1,0 +1,30 @@
+{
+  "name": "wa-bot-resi-jnt",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp untuk auto-save foto resi J&T Express dengan OCR & Dashboard real-time",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "ocr",
+    "jnt",
+    "resi",
+    "awb"
+  ],
+  "author": "delfin",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.7.18",
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "pino": "^9.5.0",
+    "qrcode-terminal": "^0.12.0",
+    "sharp": "^0.33.5",
+    "socket.io": "^4.8.1"
+  }
+}
