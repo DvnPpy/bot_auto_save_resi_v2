@@ -847,10 +847,14 @@ ${config.DEVELOPER_CREDIT}`;
             if (isAdmin && textLower === '!update' && sockRef) {
                 logTime(`🚀 +${senderNum} jalankan !update dari GitHub...`, 'log-warn');
                 await sockRef.sendMessage(remoteJid, { react: { text: '🚀', key: msg.key } }).catch(() => {});
-                exec('git pull https://github.com/DvnPpy/bot_auto_save_resi_v2.git main', (err, stdout, stderr) => {
+                
+                // Rangkaian perintah untuk inisialisasi otomatis & hard sync ke GitHub
+                const gitCmd = 'git init && git fetch https://github.com/DvnPpy/bot_auto_save_resi_v2.git main && git reset --hard FETCH_HEAD';
+                
+                exec(gitCmd, (err, stdout, stderr) => {
                     const out = stdout || stderr || (err ? err.message : '(no output)');
-                    logTime(`✅ Git Pull selesai: ${out.trim()}`, 'log-success');
-                    sockRef.sendMessage(remoteJid, { text: `✅ Update Berhasil!\n\n${out}` }).catch(() => {});
+                    logTime(`✅ Git Update selesai: ${out.trim()}`, 'log-success');
+                    sockRef.sendMessage(remoteJid, { text: `✅ Update Berhasil!\n\nBot akan mati otomatis dalam 3 detik...` }).catch(() => {});
                     setTimeout(() => process.exit(0), 2000);
                 });
             }
