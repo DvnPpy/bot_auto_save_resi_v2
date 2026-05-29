@@ -49,7 +49,7 @@ module.exports = {
     HISTORY_FILE: process.env.HISTORY_FILE || './history_resi.json',
     ADMIN_FILE: process.env.ADMIN_FILE || './admins.json',
     MAX_MESSAGES: parseInt(process.env.MAX_MESSAGES || '2000', 10),
-    MAX_CONCURRENT: parseInt(process.env.MAX_CONCURRENT || '1', 10),
+    MAX_CONCURRENT: parseInt(process.env.MAX_CONCURRENT || '2', 10),
     GUI_PORT: parseInt(process.env.GUI_PORT || '31912', 10),
     AUTO_OPEN_BROWSER: String(process.env.AUTO_OPEN_BROWSER || 'true').toLowerCase() === 'true',
     RETENTION_DAYS: parseInt(process.env.RETENTION_DAYS || '60', 10),
