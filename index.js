@@ -622,45 +622,59 @@ async function connectToWhatsApp() {
             const startTime = Date.now();
             const timeStr = new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' });
 
-            try {
-                // [PEMBARUAN] Broadcast bar loading booting ke SEMUA ADMIN sekaligus
-                const allAdmins = new Set(db.adminList.map(n => n.includes('@') ? n : `${n}@s.whatsapp.net`));
-                allAdmins.add(config.SUPER_ADMIN);
+            // Berikan jeda 3 detik agar socket WA benar-benar stabil sebelum broadcast
+            setTimeout(async () => {
+                try {
+                    // Pastikan format JID seragam dan Super Admin masuk dengan benar
+                    const allAdmins = new Set(db.adminList.map(n => n.includes('@') ? n : `${n}@s.whatsapp.net`));
+                    allAdmins.add(config.SUPER_ADMIN.includes('@') ? config.SUPER_ADMIN : `${config.SUPER_ADMIN}@s.whatsapp.net`);
 
-                let bootMsgs = [];
-                for (const adminJid of allAdmins) {
-                    try {
-                        let sentMsg = await sockRef.sendMessage(adminJid, {
-                            text: `🔄 *SISTEM BOOTING DIMULAI*\n\n_Waktu Mulai: ${timeStr} WIB_\n[░░░░░░░░░░] 0% - Membuka Jaringan...`
-                        });
-                        if (sentMsg) bootMsgs.push({ jid: adminJid, key: sentMsg.key });
-                    } catch (e) {}
-                }
-
-                const updateAlert = async (text) => {
-                    await delay(1500);
-                    if (sockRef) {
-                        for (const bMsg of bootMsgs) {
-                            await sockRef.sendMessage(bMsg.jid, { text, edit: bMsg.key }).catch(() => {});
+                    let bootMsgs = [];
+                    
+                    // 1. KIRIM PESAN PERTAMA SECARA PARALEL (TIDAK MEMBLOKIR)
+                    const sendInitialPromises = Array.from(allAdmins).map(async (adminJid) => {
+                        try {
+                            let sentMsg = await sockRef.sendMessage(adminJid, {
+                                text: `🔄 *SISTEM BOOTING DIMULAI*\n\n_Waktu Mulai: ${timeStr} WIB_\n[░░░░░░░░░░] 0% - Membuka Jaringan...`
+                            });
+                            if (sentMsg) return { jid: adminJid, key: sentMsg.key };
+                        } catch (e) {
+                            logTime(`⚠️ Gagal kirim notif awal ke ${adminJid}`, 'log-warn');
                         }
-                    }
-                };
+                        return null;
+                    });
 
-                await updateAlert('🔄 *SISTEM BOOTING*\n\n[▓▓▓░░░░░░░] 30% - Sinkronisasi Data...');
-                db.saveHistory();
+                    // Tunggu semua pesan awal terkirim secara bersamaan
+                    const results = await Promise.all(sendInitialPromises);
+                    bootMsgs = results.filter(msg => msg !== null);
 
-                await updateAlert('🔄 *SISTEM BOOTING*\n\n[▓▓▓▓▓▓░░░░] 60% - Optimasi Memori...');
-                await updateAlert('🔄 *SISTEM BOOTING*\n\n[▓▓▓▓▓▓▓▓░░] 80% - Engine OCR Siap...');
+                    // 2. FUNGSI UPDATE ANIMASI SECARA PARALEL
+                    const updateAlert = async (text) => {
+                        await delay(1500);
+                        if (sockRef) {
+                            const updatePromises = bootMsgs.map(bMsg => 
+                                sockRef.sendMessage(bMsg.jid, { text, edit: bMsg.key }).catch(() => {})
+                            );
+                            await Promise.all(updatePromises); // Edit pesan bersamaan
+                        }
+                    };
 
-                const durationSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
-                await updateAlert(`✅ *BOT BERHASIL AKTIF!*\n\n[▓▓▓▓▓▓▓▓▓▓] 100% - Sistem Optimal\nSiap memproses foto resi.\n\n⏱️ Durasi: *${durationSeconds} detik*`);
+                    // Jalankan sekuens animasi
+                    await updateAlert('🔄 *SISTEM BOOTING*\n\n[▓▓▓░░░░░░░] 30% - Sinkronisasi Data...');
+                    db.saveHistory();
 
-                logTime(`🚀 Bot sepenuhnya siap! Waktu booting: ${durationSeconds}s`, 'log-success');
+                    await updateAlert('🔄 *SISTEM BOOTING*\n\n[▓▓▓▓▓▓░░░░] 60% - Optimasi Memori...');
+                    await updateAlert('🔄 *SISTEM BOOTING*\n\n[▓▓▓▓▓▓▓▓░░] 80% - Engine OCR Siap...');
 
-            } catch (error) {
-                logTime(`⚠️ Gagal proses pesan booting: ${error.message}`, 'log-warn');
-            }
-        }
+                    const durationSeconds = ((Date.now() - startTime) / 1000).toFixed(1);
+                    await updateAlert(`✅ *BOT BERHASIL AKTIF!*\n\n[▓▓▓▓▓▓▓▓▓▓] 100% - Sistem Optimal\nSiap memproses foto resi.\n\n⏱️ Durasi: *${durationSeconds} detik*`);
+
+                    logTime(`🚀 Bot sepenuhnya siap! Waktu booting: ${durationSeconds}s`, 'log-success');
+
+                } catch (error) {
+                    logTime(`⚠️ Gagal proses pesan booting: ${error.message}`, 'log-warn');
+                }
+            }, 3000); // Angka 3000 = jeda 3 detik
     });
 
     sock.ev.on('messages.upsert', async m => {
